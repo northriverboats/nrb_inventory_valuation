@@ -4,8 +4,7 @@ import csv
 import os
 from datetime import datetime
 from datetime import timedelta
-from openpyxl import Workbook
-from openpyxl.styles import Font
+from excelopen import ExcelOpenDocument
 import platform
 
 """

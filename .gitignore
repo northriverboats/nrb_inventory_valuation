@@ -1,0 +1,6 @@
+.direnv/*
+__pycache__/*
+*.pyc
+.env
+MASTER LIST.xlsx
+*.pickle

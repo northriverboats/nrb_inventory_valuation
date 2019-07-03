@@ -6,6 +6,7 @@ from datetime import datetime
 from datetime import timedelta
 from openpyxl import Workbook
 from openpyxl.styles import Font
+import platform
 
 """
 print("{:12.12} {:20.20} {:40.40}  {:12.12}  {:8.8} {:9.9}  {:9.9}".format(
@@ -25,8 +26,17 @@ ith = ['', '1st', '2nd', '3rd', '4th']
 quarter = ith[qtr]
 title = quarter + ' Quarter ' + str(inventoried.year)
 
-csv_file = os.getenv("CSVFILE")
-xlsx_file = title + " " + os.getenv("XLSXFILE")
+os.getenv("LINUXXLSDIR")
+
+if platform.system() == 'Linux':
+    csv_file = os.getenv("LINUXCSVFILE")
+    file_name = os.path.join(os.getenv("LINUXXLSDIR"), title)
+    xlsx_file = file_name + " " + os.getenv("LINUXXLSXFILE")
+else:
+    csv_file = os.getenv("WINDOWSCSVFILE")
+    file_name = os.path.join(os.getenv("WINDOWSXLSDIR"), title)
+    xlsx_file = file_name + " " + os.getenv("WINDOWSXLSXFILE")
+
 
 fields = ['Location', 'Part', 'Description', 'Qty', 'UOM', 'Cost',
           'Extended']
@@ -62,7 +72,8 @@ def read_csv_file():
                          row[14].replace(",", "")[2:],
                          row[15].replace(",", "")[2:]])
 
-    return rows.sort(key=lambda l: (l[0], l[1]))
+    rows.sort(key=lambda l: (l[0], l[1]))
+    return rows
 
 
 def filterWarehouse(row):
@@ -118,7 +129,7 @@ def write_xlsx_file(rows):
 
 
 def main():
-    rows = read_csv_file
+    rows = read_csv_file()
     # write_xlsx_file(rows)
 
 

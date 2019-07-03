@@ -54,6 +54,12 @@ class ExcelOpenDocument(object):
         else:
             self.saveas(self.filename_saveas)
 
+    def max_row(self):
+        return self.sheet.max_row
+
+    def max_column(self):
+        return self.sheet.max_column
+
     def cell(self, ref=None, row=None, column=None):
         if ref:
             assert(not row or not column), 'Can not use column= or row= with "A1" style cell refernce'  # noqa: E501

@@ -125,12 +125,13 @@ def write_xlsx_file(rows):
         sheet.cell(row=row, column=7).value = "=SUM(D{}*F{}".format(row, row)
 
     # save workbook before exiting
+    print(sheet.max_row)
     workbook.save(xlsx_file)
 
 
 def main():
     rows = read_csv_file()
-    # write_xlsx_file(rows)
+    write_xlsx_file(rows)
 
 
 if __name__ == "__main__":

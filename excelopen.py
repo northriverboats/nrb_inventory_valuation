@@ -13,7 +13,7 @@ class ExcelOpenDocument(object):
     filename_saveas = None
     fonts = {}
     workbook = None
-    worksheet = None
+    sheet = None
 
     def __init__(self):
         pass
@@ -38,7 +38,7 @@ class ExcelOpenDocument(object):
 
     def close(self):
         self.workbook = None
-        self.worksheet = None
+        self.sheet = None
         self.filename = None
         self.filename_saveas = None
 
@@ -53,3 +53,11 @@ class ExcelOpenDocument(object):
             self.saveas(self.filename)
         else:
             self.saveas(self.filename_saveas)
+
+    def cell(self, ref=None, row=None, column=None):
+        if ref:
+            assert(not row or not column), 'Can not use column= or row= with "A1" style cell refernce'  # noqa: E501
+            return self.sheet[ref]
+        else:
+            assert(not ref), 'Can not use "A1" style cell refernce with column= row='  # noqa: E501
+            return self.sheet.cell(row=row, column=column)

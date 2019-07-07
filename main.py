@@ -116,7 +116,7 @@ def write_xlsx_file(rows):
             if formats[column-1] == 'General':
                 value = field
             else:
-                value = float(field)
+                value = float(field.replace(",",""))
             cell = sheet.cell(row=row, column=column)
             cell.value = value
             cell.number_format = formats[column-1]

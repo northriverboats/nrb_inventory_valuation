@@ -4,8 +4,9 @@ import csv
 import os
 from datetime import datetime
 from datetime import timedelta
-from excelopen import ExcelOpenDocument
+# from excelopen import ExcelOpenDocument
 import platform
+import pprint
 
 """
 print("{:12.12} {:20.20} {:40.40}  {:12.12}  {:8.8} {:9.9}  {:9.9}".format(
@@ -57,19 +58,17 @@ def read_csv_file():
         for i in range(6):
             ignore = next(csvreader)  # noqa: F841
         location = ""
-        count = 0
+
         for row in csvreader:
-            if row[0]:
+            if row[0] == "Grand Total":
+                ignore = next(csvreader)  # noqa: F841
+            elif row[0]:
                 location = row[0]
-                count = 0
-            if row[1] == "":
-                count += 1
-                continue
-            if count > 2:
-                continue
-            rows.append([location, row[1], row[2], row[10], row[12],
-                         row[14].replace(",", "")[2:],
-                         row[15].replace(",", "")[2:]])
+            elif row[1]:
+                rows.append([location,
+                             row[1], row[2], row[10], row[12],
+                             row[14].replace(",", "")[2:],
+                             row[15].replace(",", "")[2:]])
 
     rows.sort(key=lambda l: (l[0], l[1]))
     return rows
@@ -116,7 +115,7 @@ def write_xlsx_file(rows):
             if formats[column-1] == 'General':
                 value = field
             else:
-                value = float(field.replace(",",""))
+                value = float(field.replace(",", ""))
             cell = sheet.cell(row=row, column=column)
             cell.value = value
             cell.number_format = formats[column-1]
@@ -130,6 +129,8 @@ def write_xlsx_file(rows):
 
 def main():
     rows = read_csv_file()
+    pp = pprint.PrettyPrinter(indent=4, width=120)
+    pp.pprint(rows)
     write_xlsx_file(rows)
 
 

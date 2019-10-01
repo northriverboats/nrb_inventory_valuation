@@ -4,9 +4,8 @@ import csv
 import os
 from datetime import datetime
 from datetime import timedelta
-# from excelopen import ExcelOpenDocument
-import platform
-import pprint
+from platform import system
+from excelopen import ExcelOpenDocument
 
 """
 print("{:12.12} {:20.20} {:40.40}  {:12.12}  {:8.8} {:9.9}  {:9.9}".format(
@@ -28,7 +27,7 @@ title = quarter + ' Quarter ' + str(inventoried.year)
 
 os.getenv("LINUXXLSDIR")
 
-if platform.system() == 'Linux':
+if system() == 'Linux':
     csv_file = os.getenv("LINUXCSVFILE")
     file_name = os.path.join(os.getenv("LINUXXLSDIR"), title)
     xlsx_file = file_name + " " + os.getenv("LINUXXLSXFILE")
@@ -96,19 +95,17 @@ def filterApparel(row):
 
 
 def write_xlsx_file(rows):
-    # create new workbook
-    workbook = Workbook()
-    sheet = workbook.active
-
-    title_font = Font(name='Arial', size=10, bold=True)
-    body_font = Font(name='Arial', size=10)
+    excel = ExcelOpenDocument()
+    excel.new(xlsx_file)
+    title_font = excel.font(name='Arial', size=10, bold=True)
+    body_font = excel.font(name='Arial', size=10)
 
     for column, value in enumerate(fields, start=1):
-        sheet.cell(row=1, column=column).value = value
-        sheet.cell(row=1, column=column).font = title_font
+        excel.cell(row=1, column=column).value = value
+        excel.cell(row=1, column=column).font = title_font
 
     for column, width in enumerate(widths, start=65):
-        sheet.column_dimensions[chr(column)].width = width
+        excel.set_width(chr(column), width)
 
     for row, all_fields in enumerate(filter(filterWarehouse, rows), start=2):
         for column, field in enumerate(all_fields, start=1):
@@ -116,21 +113,26 @@ def write_xlsx_file(rows):
                 value = field
             else:
                 value = float(field.replace(",", ""))
-            cell = sheet.cell(row=row, column=column)
+            cell = excel.cell(row=row, column=column)
             cell.value = value
             cell.number_format = formats[column-1]
             cell.font = body_font
-        sheet.cell(row=row, column=7).value = "=SUM(D{}*F{}".format(row, row)
 
-    # save workbook before exiting
-    print(sheet.max_row)
-    workbook.save(xlsx_file)
+        excel.cell(row=row, column=7).value = "=SUM(D{}*F{})".format(row, row)
+        excel.cell(row=row, column=7).font = body_font
+
+    row = excel.max_row() + 2
+    excel.cell(row=row, column=5).value = 'Grand Total:'
+    excel.cell(row=row, column=5).font = title_font
+    excel.cell(row=row, column=7).value = "=SUM(G2:G{})".format(row - 2)
+    excel.cell(row=row, column=7).font = title_font
+    excel.cell(row=row, column=7).number_format = formats[column-1]
+
+    excel.save()
 
 
 def main():
     rows = read_csv_file()
-    pp = pprint.PrettyPrinter(indent=4, width=120)
-    pp.pprint(rows)
     write_xlsx_file(rows)
 
 

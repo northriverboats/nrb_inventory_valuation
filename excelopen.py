@@ -11,7 +11,6 @@ class ExcelOpenDocument(object):
     """
     filename = None
     filename_saveas = None
-    fonts = {}
     workbook = None
     sheet = None
 
@@ -33,7 +32,7 @@ class ExcelOpenDocument(object):
         assert (filename), "No filename provided to open as a template"
         assert (filename_saveas), "No filename provided to save as new spreadsheet"  # noqa: E501
         self.filename = filename_saveas
-        self.workbook =load_workbook(filename)
+        self.workbook = load_workbook(filename)
         self.sheet = self.workbook.active
 
     def close(self):
@@ -50,8 +49,10 @@ class ExcelOpenDocument(object):
     def save(self):
         assert (self.filename or self.filename_saveas), "Excel Document can not be saved: no filename given"  # noqa: E501
         if self.filename is not None:
+            print("Saving '" + self.filename + "'")
             self.saveas(self.filename)
         else:
+            print("Saving As '" + self.filename_saveas + "'")
             self.saveas(self.filename_saveas)
 
     def max_row(self):
@@ -67,3 +68,13 @@ class ExcelOpenDocument(object):
         else:
             assert(not ref), 'Can not use "A1" style cell refernce with column= row='  # noqa: E501
             return self.sheet.cell(row=row, column=column)
+
+    def font(self, **params):
+        return Font(**params)
+
+    def get_width(self, column):
+        return self.sheet.column_dimensions[column].width
+
+    def set_width(self, column, width):
+        self.sheet.column_dimensions[column].width = width
+

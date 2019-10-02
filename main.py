@@ -2,6 +2,9 @@
 
 import csv
 import os
+import pprint
+import fdb
+from decimal import Decimal
 from datetime import datetime
 from datetime import timedelta
 from platform import system
@@ -47,6 +50,56 @@ formats = ['General', 'General', 'General', '0.00', 'General',
 widths = [16.25, 34.25, 80.50, 7.50, 6.50, 10, 12.75]
 
 
+def read_firebird_database():
+    stock = []
+    con = fdb.connect(
+        host=os.getenv('HOST'),
+        database=os.getenv('DATABASE'),
+        user=os.getenv('USER'),
+        password=os.getenv("PASSWORD"),
+        charset='WIN1252'
+    )
+
+    SELECT = """
+    SELECT locationGroup.name AS "Group",
+        COALESCE(partcost.avgcost, 0) AS averageunitcost,
+        COALESCE(part.stdcost, 0) AS standardunitcost,
+        locationgroup.name AS locationgroup,
+        part.num AS partnumber,
+        part.description AS partdescription,
+        location.name AS location, asaccount.name AS inventoryaccount,
+        uom.code AS uomcode, sum(tag.qty) AS qty, company.name AS company
+    FROM part
+        INNER JOIN partcost ON part.id = partcost.partid
+        INNER JOIN tag ON part.id = tag.partid
+        INNER JOIN location ON tag.locationid = location.id
+        INNER JOIN locationgroup ON location.locationgroupid = locationgroup.id
+        LEFT JOIN asaccount ON part.inventoryaccountid = asaccount.id
+        LEFT JOIN uom ON uom.id = part.uomid
+        JOIN company ON company.id = 1
+    WHERE locationgroup.id IN (1)
+    GROUP BY averageunitcost, standardunitcost, locationgroup, partnumber,
+        partdescription, location, inventoryaccount, uomcode, company
+    """
+
+    cur = con.cursor()
+    cur.execute(SELECT)
+
+    for (group, avgcost, stdcost, locationgroup, partnum, partdescription,
+         location, invaccount, uom, qty, company) in cur:
+        stock.append([
+            location,
+            partnum,
+            partdescription,
+            str(Decimal(str(qty)).quantize(Decimal("1.00"))),
+            uom,
+            str(Decimal(str(avgcost)).quantize(Decimal("1.00"))),
+        ])
+
+    stock = sorted(stock, key=lambda k: (k[0], k[1]))
+    return stock
+
+
 def read_csv_file():
     # initializing the titles and rows list
     rows = []
@@ -61,7 +114,6 @@ def read_csv_file():
         count = 6
         for row in csvreader:
             count += 1
-            print(count, row)
             if row[0] == "Grand Total":
                 ignore = next(csvreader)  # noqa: F841
             elif row[0]:
@@ -72,7 +124,6 @@ def read_csv_file():
                              row[14].replace(",", "")[2:],
                              row[15].replace(",", "")[2:]])
 
-    print()
     rows.sort(key=lambda l: (l[0], l[1]))
     return rows
 
@@ -124,21 +175,28 @@ def write_xlsx_file(rows):
 
         excel.cell(row=row, column=7).value = "=SUM(D{}*F{})".format(row, row)
         excel.cell(row=row, column=7).font = body_font
+        excel.cell(row=row, column=7).number_format = formats[6]
 
     row = excel.max_row() + 2
     excel.cell(row=row, column=5).value = 'Grand Total:'
     excel.cell(row=row, column=5).font = title_font
     excel.cell(row=row, column=7).value = "=SUM(G2:G{})".format(row - 2)
     excel.cell(row=row, column=7).font = title_font
-    excel.cell(row=row, column=7).number_format = formats[column-1]
+    excel.cell(row=row, column=7).number_format = formats[6]
 
     excel.save()
 
 
 def main():
-    rows = read_csv_file()
+    # rows = read_csv_file()
+    # pp = pprint.PrettyPrinter(indent=2)
+    # pp.pprint(rows[15])
+    rows = read_firebird_database()
     write_xlsx_file(rows)
+    # pp = pprint.PrettyPrinter(indent=2)
+    # pp.pprint(rows[15])
 
 
 if __name__ == "__main__":
         main()
+

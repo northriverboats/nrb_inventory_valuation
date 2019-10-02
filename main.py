@@ -51,14 +51,17 @@ def read_csv_file():
     # initializing the titles and rows list
     rows = []
 
-    with open(csv_file, 'r') as csvfile:
+    with open(csv_file, encoding="utf8") as csvfile:
         # creating a csv reader object
         csvreader = csv.reader(csvfile)
         for i in range(6):
             ignore = next(csvreader)  # noqa: F841
         location = ""
 
+        count = 6
         for row in csvreader:
+            count += 1
+            print(count, row)
             if row[0] == "Grand Total":
                 ignore = next(csvreader)  # noqa: F841
             elif row[0]:
@@ -69,6 +72,7 @@ def read_csv_file():
                              row[14].replace(",", "")[2:],
                              row[15].replace(",", "")[2:]])
 
+    print()
     rows.sort(key=lambda l: (l[0], l[1]))
     return rows
 

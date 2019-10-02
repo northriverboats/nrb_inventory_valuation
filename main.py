@@ -2,7 +2,6 @@
 
 import csv
 import os
-import pprint
 import fdb
 from decimal import Decimal
 from datetime import datetime
@@ -100,34 +99,6 @@ def read_firebird_database():
     return stock
 
 
-def read_csv_file():
-    # initializing the titles and rows list
-    rows = []
-
-    with open(csv_file, encoding="utf8") as csvfile:
-        # creating a csv reader object
-        csvreader = csv.reader(csvfile)
-        for i in range(6):
-            ignore = next(csvreader)  # noqa: F841
-        location = ""
-
-        count = 6
-        for row in csvreader:
-            count += 1
-            if row[0] == "Grand Total":
-                ignore = next(csvreader)  # noqa: F841
-            elif row[0]:
-                location = row[0]
-            elif row[1]:
-                rows.append([location,
-                             row[1], row[2], row[10], row[12],
-                             row[14].replace(",", "")[2:],
-                             row[15].replace(",", "")[2:]])
-
-    rows.sort(key=lambda l: (l[0], l[1]))
-    return rows
-
-
 def filterWarehouse(row):
     if row[0] not in ['Upholstery', 'Apparel']:
         return True
@@ -188,13 +159,8 @@ def write_xlsx_file(rows):
 
 
 def main():
-    # rows = read_csv_file()
-    # pp = pprint.PrettyPrinter(indent=2)
-    # pp.pprint(rows[15])
     rows = read_firebird_database()
     write_xlsx_file(rows)
-    # pp = pprint.PrettyPrinter(indent=2)
-    # pp.pprint(rows[15])
 
 
 if __name__ == "__main__":

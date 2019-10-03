@@ -72,7 +72,7 @@ def xlsx_name():
     return xlsx_file
 
 
-def read_firebird_database():
+def read_firebird_database(include, exclude):
     """Create Inventory Value Summary from Fishbowl"""
     stock = []
     con = fdb.connect(
@@ -110,6 +110,10 @@ def read_firebird_database():
 
     for (group, avgcost, stdcost, locationgroup, partnum, partdescription,
          location, invaccount, uom, qty, company) in cur:
+        if location in exclude:
+            continue
+        if include and location not in include:
+            continue
         stock.append([
             location,
             partnum,
@@ -123,7 +127,7 @@ def read_firebird_database():
     return stock
 
 
-def write_xlsx_file(rows, ignore):
+def write_xlsx_file(rows):
     excel = ExcelOpenDocument()
     excel.new(xlsx_name())
     title_font = excel.font(name='Arial', size=10, bold=True)
@@ -136,8 +140,7 @@ def write_xlsx_file(rows, ignore):
     for column, width in enumerate(WIDTHS, start=65):
         excel.set_width(chr(column), width)
 
-    for row, all_fields in enumerate(
-            filter(lambda x: x[0] not in ignore, rows), start=2):
+    for row, all_fields in enumerate(rows, start=2):
         for column, field in enumerate(all_fields, start=1):
             if FORMATS[column-1] == 'General':
                 value = field
@@ -163,18 +166,24 @@ def write_xlsx_file(rows, ignore):
 
 
 @click.command()
-@click.option('--ignore',
+@click.option('--include',
               '-i',
               default='',
               multiple=True,
-              help='Location to ignore'
+              help='Location to include'
               )
-def main(ignore):
+@click.option('--exclude',
+              '-e',
+              default='',
+              multiple=True,
+              help='Location to exclude'
+              )
+def main(include, exclude):
     """Create spreadsheet with inventory items from fishbowl
-    You will want to use: -i Upholstry -i Shipping -i Apparel
+    You will want to use: -e Upholstry -e Shipping -e Apparel
     """
-    rows = read_firebird_database()
-    write_xlsx_file(rows, ignore)
+    rows = read_firebird_database(include, exclude)
+    write_xlsx_file(rows)
 
 
 if __name__ == "__main__":

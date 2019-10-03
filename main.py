@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-import csv
 import os
-import fdb
 from decimal import Decimal
 from datetime import datetime
 from datetime import timedelta
 from platform import system
+import fdb
+import click
 from excelopen import ExcelOpenDocument
 
 """
@@ -21,35 +21,59 @@ for row in rows:
          float(row[6])))
 """
 
-inventoried = (datetime.today() - timedelta(days=15))
-qtr = int(inventoried.month / 3)
-ith = ['', '1st', '2nd', '3rd', '4th']
-quarter = ith[qtr]
-title = quarter + ' Quarter ' + str(inventoried.year)
 
-os.getenv("LINUXXLSDIR")
+FIELDS = [
+    'Location',
+    'Part',
+    'Description',
+    'Qty',
+    'UOM',
+    'Cost',
+    'Extended',
+]
 
-if system() == 'Linux':
-    csv_file = os.getenv("LINUXCSVFILE")
-    file_name = os.path.join(os.getenv("LINUXXLSDIR"), title)
-    xlsx_file = file_name + " " + os.getenv("LINUXXLSXFILE")
-else:
-    csv_file = os.getenv("WINDOWSCSVFILE")
-    file_name = os.path.join(os.getenv("WINDOWSXLSDIR"), title)
-    xlsx_file = file_name + " " + os.getenv("WINDOWSXLSXFILE")
+FORMATS = [
+    'General',
+    'General',
+    'General',
+    '0.00',
+    'General',
+    r'[$$-409]#,##0.00;[RED]\-[$$-409]#,##0.00',
+    r'[$$-409]#,##0.00;[RED]\-[$$-409]#,##0.00',
+]
+
+WIDTHS = [
+    16.25,
+    34.25,
+    80.50,
+    7.50,
+    6.50,
+    10,
+    12.75,
+]
 
 
-fields = ['Location', 'Part', 'Description', 'Qty', 'UOM', 'Cost',
-          'Extended']
+def xlsx_name():
+    """Return Name of xlsx file based on OS"""
+    inventoried = (datetime.today() - timedelta(days=15))
+    qtr = int(inventoried.month / 3)
+    ith = ['', '1st', '2nd', '3rd', '4th']
+    quarter = ith[qtr]
+    title = quarter + ' Quarter ' + str(inventoried.year)
 
-formats = ['General', 'General', 'General', '0.00', 'General',
-           '[$$-409]#,##0.00;[RED]\-[$$-409]#,##0.00',
-           '[$$-409]#,##0.00;[RED]\-[$$-409]#,##0.00']
+    os.getenv("LINUXXLSDIR")
 
-widths = [16.25, 34.25, 80.50, 7.50, 6.50, 10, 12.75]
+    if system() == 'Linux':
+        file_name = os.path.join(os.getenv("LINUXXLSDIR"), title)
+        xlsx_file = file_name + " " + os.getenv("LINUXXLSXFILE")
+    else:
+        file_name = os.path.join(os.getenv("WINDOWSXLSDIR"), title)
+        xlsx_file = file_name + " " + os.getenv("WINDOWSXLSXFILE")
+    return xlsx_file
 
 
 def read_firebird_database():
+    """Create Inventory Value Summary from Fishbowl"""
     stock = []
     con = fdb.connect(
         host=os.getenv('HOST'),
@@ -59,7 +83,7 @@ def read_firebird_database():
         charset='WIN1252'
     )
 
-    SELECT = """
+    select = """
     SELECT locationGroup.name AS "Group",
         COALESCE(partcost.avgcost, 0) AS averageunitcost,
         COALESCE(part.stdcost, 0) AS standardunitcost,
@@ -82,7 +106,7 @@ def read_firebird_database():
     """
 
     cur = con.cursor()
-    cur.execute(SELECT)
+    cur.execute(select)
 
     for (group, avgcost, stdcost, locationgroup, partnum, partdescription,
          location, invaccount, uom, qty, company) in cur:
@@ -99,70 +123,59 @@ def read_firebird_database():
     return stock
 
 
-def filterWarehouse(row):
-    if row[0] not in ['Upholstery', 'Apparel']:
-        return True
-    else:
-        return False
-
-
-def filterUpholstery(row):
-    if row[0] == 'Upholstery':
-        return True
-    else:
-        return False
-
-
-def filterApparel(row):
-    if row[0] == 'Apparel':
-        return True
-    else:
-        return False
-
-
-def write_xlsx_file(rows):
+def write_xlsx_file(rows, ignore):
     excel = ExcelOpenDocument()
-    excel.new(xlsx_file)
+    excel.new(xlsx_name())
     title_font = excel.font(name='Arial', size=10, bold=True)
     body_font = excel.font(name='Arial', size=10)
 
-    for column, value in enumerate(fields, start=1):
+    for column, value in enumerate(FIELDS, start=1):
         excel.cell(row=1, column=column).value = value
         excel.cell(row=1, column=column).font = title_font
 
-    for column, width in enumerate(widths, start=65):
+    for column, width in enumerate(WIDTHS, start=65):
         excel.set_width(chr(column), width)
 
-    for row, all_fields in enumerate(filter(filterWarehouse, rows), start=2):
+    for row, all_fields in enumerate(
+            filter(lambda x: x[0] not in ignore, rows), start=2):
         for column, field in enumerate(all_fields, start=1):
-            if formats[column-1] == 'General':
+            if FORMATS[column-1] == 'General':
                 value = field
             else:
                 value = float(field.replace(",", ""))
             cell = excel.cell(row=row, column=column)
             cell.value = value
-            cell.number_format = formats[column-1]
+            cell.number_format = FORMATS[column-1]
             cell.font = body_font
 
         excel.cell(row=row, column=7).value = "=SUM(D{}*F{})".format(row, row)
         excel.cell(row=row, column=7).font = body_font
-        excel.cell(row=row, column=7).number_format = formats[6]
+        excel.cell(row=row, column=7).number_format = FORMATS[6]
 
     row = excel.max_row() + 2
     excel.cell(row=row, column=5).value = 'Grand Total:'
     excel.cell(row=row, column=5).font = title_font
     excel.cell(row=row, column=7).value = "=SUM(G2:G{})".format(row - 2)
     excel.cell(row=row, column=7).font = title_font
-    excel.cell(row=row, column=7).number_format = formats[6]
+    excel.cell(row=row, column=7).number_format = FORMATS[6]
 
     excel.save()
 
 
-def main():
+@click.command()
+@click.option('--ignore',
+              '-i',
+              default='',
+              multiple=True,
+              help='Location to ignore'
+              )
+def main(ignore):
+    """Create spreadsheet with inventory items from fishbowl
+    You will want to use: -i Upholstry -i Shipping -i Apparel
+    """
     rows = read_firebird_database()
-    write_xlsx_file(rows)
+    write_xlsx_file(rows, ignore)
 
 
 if __name__ == "__main__":
-        main()
-
+    main()  # pylint: disable=no-value-for-parameter

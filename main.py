@@ -53,7 +53,7 @@ WIDTHS = [
 ]
 
 
-def xlsx_name():
+def xlsx_name(path):
     """Return Name of xlsx file based on OS"""
     inventoried = (datetime.today() - timedelta(days=15))
     qtr = int(inventoried.month / 3)
@@ -61,22 +61,20 @@ def xlsx_name():
     quarter = ith[qtr]
     title = quarter + ' Quarter ' + str(inventoried.year)
 
-    os.getenv("LINUXXLSDIR")
-
     if system() == 'Linux':
-        file_name = os.path.join(os.getenv("LINUXXLSDIR"), title)
-        xlsx_file = file_name + " " + os.getenv("LINUXXLSXFILE")
+        file_name = os.path.join(path or os.getenv("LINUXXLSDIR"), title)
+        xlsx_file = file_name + " " + os.getenv("REPORTNAME")
     else:
-        file_name = os.path.join(os.getenv("WINDOWSXLSDIR"), title)
-        xlsx_file = file_name + " " + os.getenv("WINDOWSXLSXFILE")
+        file_name = os.path.join(path or os.getenv("WINDOWSXLSDIR"), title)
+        xlsx_file = file_name + " " + os.getenv("REPORTNAME")
     return xlsx_file
 
 
-def read_firebird_database(include, exclude):
+def read_firebird_database(host, include, exclude):
     """Create Inventory Value Summary from Fishbowl"""
     stock = []
     con = fdb.connect(
-        host=os.getenv('HOST'),
+        host=host,
         database=os.getenv('DATABASE'),
         user=os.getenv('USER'),
         password=os.getenv("PASSWORD"),
@@ -127,9 +125,9 @@ def read_firebird_database(include, exclude):
     return stock
 
 
-def write_xlsx_file(rows):
+def write_xlsx_file(rows, path):
     excel = ExcelOpenDocument()
-    excel.new(xlsx_name())
+    excel.new(xlsx_name(path))
     title_font = excel.font(name='Arial', size=10, bold=True)
     body_font = excel.font(name='Arial', size=10)
 
@@ -166,24 +164,35 @@ def write_xlsx_file(rows):
 
 
 @click.command()
-@click.option('--include',
-              '-i',
-              default='',
-              multiple=True,
-              help='Location to include'
-              )
 @click.option('--exclude',
               '-e',
               default='',
               multiple=True,
               help='Location to exclude'
               )
-def main(include, exclude):
+@click.option('--host',
+              '-h',
+              default='',
+              help='host to connect to'
+              )
+@click.option('--include',
+              '-i',
+              default='',
+              multiple=True,
+              help='Location to include'
+              )
+@click.option('--path',
+              '-p',
+              default='',
+              help='Path to save file to'
+              )
+def main(include, exclude, host, path):
     """Create spreadsheet with inventory items from fishbowl
     You will want to use: -e Upholstry -e Shipping -e Apparel
     """
-    rows = read_firebird_database(include, exclude)
-    write_xlsx_file(rows)
+    host_server = host or os.getenv('PRODUCTIONHOST')
+    rows = read_firebird_database(host_server, include, exclude)
+    write_xlsx_file(rows, path)
 
 
 if __name__ == "__main__":

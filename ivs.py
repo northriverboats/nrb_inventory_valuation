@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 ivs create inventory valueation summmary sheet
 """
@@ -196,3 +197,7 @@ def cli(include, exclude, host, path):
     host_server = host or os.getenv('PRODUCTIONHOST')
     rows = read_firebird_database(host_server, include, exclude)
     write_xlsx_file(rows, path)
+
+
+if __name__ == "__main__":
+        cli()  # pylint: disable=no-value-for-parameter

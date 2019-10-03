@@ -6,3 +6,5 @@ __pycache__/*
 MASTER LIST.xlsx
 *.pickle
 *.vscode
+*.egg-info/
+.*.swp

@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+"""
+ivs create inventory valueation summmary sheet
+"""
 
 import os
 from decimal import Decimal
@@ -126,6 +128,7 @@ def read_firebird_database(host, include, exclude):
 
 
 def write_xlsx_file(rows, path):
+    """write inventoty data to xlsx sheet"""
     excel = ExcelOpenDocument()
     excel.new(xlsx_name(path))
     title_font = excel.font(name='Arial', size=10, bold=True)
@@ -186,14 +189,10 @@ def write_xlsx_file(rows, path):
               default='',
               help='Path to save file to'
               )
-def main(include, exclude, host, path):
+def cli(include, exclude, host, path):
     """Create spreadsheet with inventory items from fishbowl
     You will want to use: -e Upholstry -e Shipping -e Apparel
     """
     host_server = host or os.getenv('PRODUCTIONHOST')
     rows = read_firebird_database(host_server, include, exclude)
     write_xlsx_file(rows, path)
-
-
-if __name__ == "__main__":
-    main()  # pylint: disable=no-value-for-parameter

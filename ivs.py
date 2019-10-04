@@ -10,7 +10,11 @@ from datetime import timedelta
 from platform import system
 import fdb
 import click
+from dotenv import load_dotenv
 from excelopen import ExcelOpenDocument
+
+load_dotenv()  # use os.getenv()
+
 
 """
 print("{:12.12} {:20.20} {:40.40}  {:12.12}  {:8.8} {:9.9}  {:9.9}".format(

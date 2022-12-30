@@ -9,6 +9,7 @@ from datetime import datetime
 from datetime import timedelta
 from platform import system
 import fdb
+import itertools
 import click
 from dotenv import load_dotenv
 from excelopen import ExcelOpenDocument
@@ -59,6 +60,12 @@ WIDTHS = [
     12.75,
 ]
 
+
+def filter_nonprintable(text):
+    nonprintable = itertools.chain(range(0x00,0x20),range(0x7f,0xa0))
+    # Use characters of control category
+    # Use translate to remove all non-printable characters
+    return text.translate({character:None for character in nonprintable})
 
 def xlsx_name(path):
     """Return Name of xlsx file based on OS"""
@@ -147,6 +154,9 @@ def write_xlsx_file(rows, path):
         excel.set_width(chr(column), width)
 
     for row, all_fields in enumerate(rows, start=2):
+        # remove ascii 0x00 - 0x1F
+        all_fields[1] = filter_nonprintable(all_fields[1])
+        all_fields[2] = filter_nonprintable(all_fields[2])
         for column, field in enumerate(all_fields, start=1):
             if FORMATS[column-1] == 'General':
                 value = field
